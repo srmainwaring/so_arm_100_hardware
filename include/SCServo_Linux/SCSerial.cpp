@@ -62,14 +62,16 @@ bool SCSerial::begin(int baudRate, const char* serialPort)
     case 115200:
         CR_BAUDRATE = B115200;
         break;
+#ifndef __APPLE__
     case 500000:
         CR_BAUDRATE = B500000;
         break;
     case 1000000:
         CR_BAUDRATE = B1000000;
         break;
+#endif
     default:
-		CR_BAUDRATE = B115200;
+        CR_BAUDRATE = B115200;
         break;
     }
     cfsetispeed(&curopt, CR_BAUDRATE);
@@ -119,10 +121,12 @@ int SCSerial::setBaudRate(int baudRate)
         break;
     case 230400:
         CR_BAUDRATE = B230400;
-	break;
+        break;
+#ifndef __APPLE__
     case 500000:
         CR_BAUDRATE = B500000;
         break;
+#endif
     default:
         break;
     }
