@@ -16,12 +16,12 @@ class ZeroPoseTest(Node):
             
         # Joint names in order
         self.joint_names = [
-            'Shoulder_Rotation',
-            'Shoulder_Pitch',
-            'Elbow',
-            'Wrist_Pitch',
-            'Wrist_Roll',
-            'Gripper'
+            'shoulder_pan',
+            'shoulder_lift',
+            'elbow_flex',
+            'wrist_flex',
+            'wrist_roll',
+            'gripper'
         ]
         
         # Send zero pose after specified delay

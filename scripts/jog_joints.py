@@ -20,13 +20,13 @@ class JogTool(Node):
         
         # Split joints into arm and gripper
         self.arm_joints = [
-            'Shoulder_Rotation',
-            'Shoulder_Pitch',
-            'Elbow',
-            'Wrist_Pitch',
-            'Wrist_Roll'
+            'shoulder_pan',
+            'shoulder_lift',
+            'elbow_flex',
+            'wrist_flex',
+            'wrist_roll'
         ]
-        self.gripper_joint = 'Gripper'
+        self.gripper_joint = 'gripper'
         
         # For tracking current positions
         self.joint_positions = {}

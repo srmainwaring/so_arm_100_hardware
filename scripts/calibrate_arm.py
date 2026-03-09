@@ -21,12 +21,12 @@ class CalibrationTool(Node):
             self.get_logger().info('Waiting for record_position service...')
             
         self.joints = [
-            'Shoulder_Rotation',
-            'Shoulder_Pitch', 
-            'Elbow',
-            'Wrist_Pitch',
-            'Wrist_Roll',
-            'Gripper'
+            'shoulder_pan',
+            'shoulder_lift', 
+            'elbow_flex',
+            'wrist_flex',
+            'wrist_roll',
+            'gripper'
         ]
         self.config_dir = os.path.join(
             get_package_share_directory('so_arm_100_hardware'),

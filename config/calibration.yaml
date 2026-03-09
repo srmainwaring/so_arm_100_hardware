@@ -1,6 +1,6 @@
 timestamp: '2025-02-02T13:26:42.812769'
 joints:
-  Shoulder_Rotation:
+  shoulder_pan:
     max:
       ticks: 3067
       speed: 0
@@ -13,7 +13,7 @@ joints:
       ticks: 336
       speed: 2328
       load: 0
-  Shoulder_Pitch:
+  shoulder_lift:
     min:
       ticks: 2091
       speed: 0
@@ -26,7 +26,7 @@ joints:
       ticks: 3865
       speed: -1
       load: 0
-  Elbow:
+  elbow_flex:
     min:
       ticks: 3239
       speed: 0
@@ -39,7 +39,7 @@ joints:
       ticks: 1004
       speed: 50
       load: 0
-  Wrist_Pitch:
+  wrist_flex:
     min:
       ticks: 3417
       speed: 0
@@ -52,7 +52,7 @@ joints:
       ticks: 965
       speed: 0
       load: 0
-  Wrist_Roll:
+  wrist_roll:
     min:
       ticks: 1302
       speed: 0
@@ -65,7 +65,7 @@ joints:
       ticks: 2564
       speed: 0
       load: -918
-  Gripper:
+  gripper:
     min:
       ticks: 1731
       speed: 0
