@@ -36,7 +36,7 @@ public:
   virtual ~SOARM100Interface();
 
   // LifecycleNodeInterface
-  CallbackReturn on_init(const hardware_interface::HardwareInfo &hardware_info) override;
+  CallbackReturn on_init(const hardware_interface::HardwareComponentInterfaceParams & params) override;
   CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state) override;
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state) override;
 

@@ -29,22 +29,22 @@ SOARM100Interface::~SOARM100Interface()
     }
 }
 
-CallbackReturn SOARM100Interface::on_init(const hardware_interface::HardwareInfo &hardware_info)
+CallbackReturn SOARM100Interface::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
 {
-    CallbackReturn result = hardware_interface::SystemInterface::on_init(hardware_info);
+    CallbackReturn result = hardware_interface::SystemInterface::on_init(params);
     if (result != CallbackReturn::SUCCESS)
     {
         return result;
     }
 
-    use_serial_ = hardware_info.hardware_parameters.count("use_serial") ?
-        (hardware_info.hardware_parameters.at("use_serial") == "true") : false;
+    use_serial_ = params.hardware_info.hardware_parameters.count("use_serial") ?
+        (params.hardware_info.hardware_parameters.at("use_serial") == "true") : false;
     
-    serial_port_ = hardware_info.hardware_parameters.count("serial_port") ?
-        hardware_info.hardware_parameters.at("serial_port") : "/dev/ttyUSB0";
+    serial_port_ = params.hardware_info.hardware_parameters.count("serial_port") ?
+        params.hardware_info.hardware_parameters.at("serial_port") : "/dev/ttyUSB0";
     
-    serial_baudrate_ = hardware_info.hardware_parameters.count("serial_baudrate") ?
-        std::stoi(hardware_info.hardware_parameters.at("serial_baudrate")) : 1000000;
+    serial_baudrate_ = params.hardware_info.hardware_parameters.count("serial_baudrate") ?
+        std::stoi(params.hardware_info.hardware_parameters.at("serial_baudrate")) : 1000000;
 
     size_t num_joints = info_.joints.size();
     position_commands_.resize(num_joints, 0.0);
@@ -180,7 +180,7 @@ void SOARM100Interface::feedback_callback(const sensor_msgs::msg::JointState::Sh
     last_feedback_msg_ = msg;
 }
 
-hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & time, const rclcpp::Duration & period)
+hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
     if (use_serial_ && torque_enabled_) {  // Only write if torque is enabled
         for (size_t i = 0; i < info_.joints.size(); ++i) {
@@ -215,7 +215,7 @@ hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & ti
     return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type SOARM100Interface::read(const rclcpp::Time & time, const rclcpp::Duration & period)
+hardware_interface::return_type SOARM100Interface::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
     if (use_serial_) {
         for (size_t i = 0; i < info_.joints.size(); ++i) {
@@ -240,7 +240,7 @@ hardware_interface::return_type SOARM100Interface::read(const rclcpp::Time & tim
                 
                 double speed = -1 * st3215_.ReadSpeed(servo_id) * 2 * M_PI / 4096.0;
                 double pwm = -1 * st3215_.ReadLoad(servo_id) / 10.0;
-                int move = st3215_.ReadMove(servo_id);
+                // int move = st3215_.ReadMove(servo_id);
                 double temperature = st3215_.ReadTemper(servo_id);
                 double voltage = st3215_.ReadVoltage(servo_id) / 10;
                 double current = st3215_.ReadCurrent(servo_id) * 6.5 / 1000;
