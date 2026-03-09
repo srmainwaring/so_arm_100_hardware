@@ -137,4 +137,4 @@ ros2 run rqt_console rqt_console
 This package is licensed under the Apache License 2.0. See the LICENSE file for details.
 
 ## Related Packages
-- [so_100_arm](https://github.com/brukg/so-100-arm): Main robot package
+- [so_arm_100](https://github.com/brukg/so-100-arm): Main robot package
