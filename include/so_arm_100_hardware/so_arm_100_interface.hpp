@@ -69,6 +69,12 @@ private:
   std::string serial_port_;
   int serial_baudrate_;
 
+  // Servo speed in ticks per second
+  u16 servo_speed_;
+
+  // Servo acceleration in ticks per second per second
+  u8 servo_acceleration_;
+
   // Serial communication
   int SerialPort;
   struct termios tty;
