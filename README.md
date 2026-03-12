@@ -83,6 +83,8 @@ so_arm_100:
     use_serial: true  # Set to true for real robot, false for simulation
     serial_port: "/dev/ttyUSB0"  # Serial port for real robot
     serial_baudrate: 1000000  # Serial baudrate
+    servo_speed: 2400  # Servo speed in ticks / second
+    servo_acceleration: 50  # Servo acceleration in ticks / second / second
 ```
 
 ### Serial Communication Mode

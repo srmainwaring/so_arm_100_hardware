@@ -46,6 +46,12 @@ CallbackReturn SOARM100Interface::on_init(const hardware_interface::HardwareComp
     serial_baudrate_ = params.hardware_info.hardware_parameters.count("serial_baudrate") ?
         std::stoi(params.hardware_info.hardware_parameters.at("serial_baudrate")) : 1000000;
 
+    servo_speed_ = params.hardware_info.hardware_parameters.count("servo_speed") ?
+        std::stoi(params.hardware_info.hardware_parameters.at("servo_speed")) : 2400;
+
+    servo_acceleration_ = params.hardware_info.hardware_parameters.count("servo_acceleration") ?
+        std::stoi(params.hardware_info.hardware_parameters.at("servo_acceleration")) : 50;
+
     size_t num_joints = info_.joints.size();
     position_commands_.resize(num_joints, 0.0);
     position_states_.resize(num_joints, 0.0);
@@ -192,7 +198,7 @@ hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & /*
                        "Servo %d command: %.2f rad -> %d ticks", 
                        servo_id, position_commands_[i], joint_pos_cmd);
             
-            if (!st3215_.RegWritePosEx(servo_id, joint_pos_cmd, 4500, 255)) {
+            if (!st3215_.RegWritePosEx(servo_id, joint_pos_cmd, servo_speed_, servo_acceleration_)) {
                 RCLCPP_WARN(rclcpp::get_logger("SOARM100Interface"), 
                            "Failed to write position to servo %d", servo_id);
             }
