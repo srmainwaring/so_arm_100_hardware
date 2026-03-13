@@ -47,9 +47,15 @@ public:
   hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  // Position command and state storage for all joints
+  // Command and state storage for all joints
   std::vector<double> position_commands_;
   std::vector<double> position_states_;
+  std::vector<double> velocity_commands_;
+  std::vector<double> velocity_states_;
+  std::vector<double> effort_states_;
+
+  // Active control mode per joint (0=position, 1=velocity, 2=effort/PWM)
+  std::vector<uint8_t> active_control_mode_;
 
   // Keep these until we fully transition to calibration
   std::vector<int> zero_positions_{2048, 2048, 2048, 2048, 2048, 2048};  // Center positions
