@@ -52,6 +52,10 @@ CallbackReturn SOARM100Interface::on_init(const hardware_interface::HardwareComp
     servo_acceleration_ = params.hardware_info.hardware_parameters.count("servo_acceleration") ?
         std::stoi(params.hardware_info.hardware_parameters.at("servo_acceleration")) : 50;
 
+    // Default control mode: 0=position, 1=velocity, 2=effort/PWM
+    default_control_mode_ = params.hardware_info.hardware_parameters.count("control_mode") ?
+        std::stoi(params.hardware_info.hardware_parameters.at("control_mode")) : 0;
+
     size_t num_joints = info_.joints.size();
     position_commands_.resize(num_joints, 0.0);
     position_states_.resize(num_joints, 0.0);
@@ -59,7 +63,7 @@ CallbackReturn SOARM100Interface::on_init(const hardware_interface::HardwareComp
     velocity_states_.resize(num_joints, 0.0);
     effort_commands_.resize(num_joints, 0.0);
     effort_states_.resize(num_joints, 0.0);
-    active_control_mode_.resize(num_joints, 0);  // default to position mode
+    active_control_mode_.resize(num_joints, default_control_mode_);
 
     return CallbackReturn::SUCCESS;
 }
@@ -91,6 +95,51 @@ std::vector<hardware_interface::CommandInterface> SOARM100Interface::export_comm
     return command_interfaces;
 }
 
+hardware_interface::return_type SOARM100Interface::prepare_command_mode_switch(
+    const std::vector<std::string> & start_interfaces,
+    const std::vector<std::string> & /*stop_interfaces*/)
+{
+    // Validate that the requested interfaces are supported
+    for (const auto & interface : start_interfaces) {
+        if (interface.find("/position") == std::string::npos &&
+            interface.find("/velocity") == std::string::npos &&
+            interface.find("/effort") == std::string::npos) {
+            RCLCPP_ERROR(rclcpp::get_logger("SOARM100Interface"),
+                        "Unsupported command interface: %s", interface.c_str());
+            return hardware_interface::return_type::ERROR;
+        }
+    }
+    return hardware_interface::return_type::OK;
+}
+
+hardware_interface::return_type SOARM100Interface::perform_command_mode_switch(
+    const std::vector<std::string> & start_interfaces,
+    const std::vector<std::string> & /*stop_interfaces*/)
+{
+    for (const auto & interface : start_interfaces) {
+        for (size_t i = 0; i < info_.joints.size(); ++i) {
+            if (interface.find(info_.joints[i].name) != std::string::npos) {
+                uint8_t new_mode = 0;
+                if (interface.find("/effort") != std::string::npos) {
+                    new_mode = 2;
+                } else if (interface.find("/velocity") != std::string::npos) {
+                    new_mode = 1;
+                }
+
+                if (active_control_mode_[i] != new_mode) {
+                    uint8_t servo_id = static_cast<uint8_t>(i + 1);
+                    st3215_.Mode(servo_id, new_mode);
+                    active_control_mode_[i] = new_mode;
+                    RCLCPP_INFO(rclcpp::get_logger("SOARM100Interface"),
+                               "Servo %d switched to mode %d via controller switch",
+                               servo_id, new_mode);
+                }
+            }
+        }
+    }
+    return hardware_interface::return_type::OK;
+}
+
 CallbackReturn SOARM100Interface::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
     RCLCPP_INFO(rclcpp::get_logger("SOARM100Interface"), "Activating so_arm_100 hardware interface...");
@@ -112,8 +161,8 @@ CallbackReturn SOARM100Interface::on_activate(const rclcpp_lifecycle::State & /*
                 return CallbackReturn::ERROR;
             }
             
-            // Set to position control mode
-            if (!st3215_.Mode(servo_id, 0)) {
+            // Set control mode (0=position, 1=velocity, 2=effort/PWM)
+            if (!st3215_.Mode(servo_id, default_control_mode_)) {
                 RCLCPP_ERROR(rclcpp::get_logger("SOARM100Interface"), 
                             "Failed to set mode for servo %d", servo_id);
                 return CallbackReturn::ERROR;
@@ -203,31 +252,15 @@ hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & /*
         for (size_t i = 0; i < info_.joints.size(); ++i) {
             uint8_t servo_id = static_cast<uint8_t>(i + 1);
 
-            // Determine desired mode: effort > velocity > position
-            uint8_t desired_mode = 0;  // position
-            if (std::abs(effort_commands_[i]) > 1e-6) {
-                desired_mode = 2;  // PWM/torque open-loop
-            } else if (std::abs(velocity_commands_[i]) > 1e-6) {
-                desired_mode = 1;  // velocity closed-loop
-            }
-
-            // Switch servo mode if needed
-            if (active_control_mode_[i] != desired_mode) {
-                st3215_.Mode(servo_id, desired_mode);
-                active_control_mode_[i] = desired_mode;
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                RCLCPP_INFO(rclcpp::get_logger("SOARM100Interface"),
-                           "Servo %d switched to mode %d", servo_id, desired_mode);
-            }
-
-            if (desired_mode == 2) {
+            // Mode is set by perform_command_mode_switch when controllers are switched
+            if (active_control_mode_[i] == 2) {
                 // Effort/PWM mode: command is percentage (-100 to 100), PWM range is -1000 to 1000
-                s16 pwm = static_cast<s16>(std::clamp(effort_commands_[i], -100.0, 100.0) * 10.0);
+                s16 pwm = static_cast<s16>(std::clamp(-effort_commands_[i], -100.0, 100.0) * 10.0);
                 if (!st3215_.RegWritePwm(servo_id, pwm)) {
                     RCLCPP_WARN(rclcpp::get_logger("SOARM100Interface"),
                                "Failed to write PWM to servo %d", servo_id);
                 }
-            } else if (desired_mode == 1) {
+            } else if (active_control_mode_[i] == 1) {
                 // Velocity mode: convert rad/s to servo speed ticks
                 s16 speed_ticks = static_cast<s16>(velocity_commands_[i] * 4096.0 / (2.0 * M_PI));
                 if (!st3215_.RegWriteSpe(servo_id, speed_ticks, 50)) {
@@ -269,9 +302,6 @@ hardware_interface::return_type SOARM100Interface::read(const rclcpp::Time & /*t
     if (use_serial_) {
         for (size_t i = 0; i < info_.joints.size(); ++i) {
             uint8_t servo_id = static_cast<uint8_t>(i + 1);
-            
-            // Add small delay between reads
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));  // Increased delay
 
             if (!torque_enabled_) {
                 // When torque is disabled, only try to read position
@@ -282,19 +312,18 @@ hardware_interface::return_type SOARM100Interface::read(const rclcpp::Time & /*t
                 continue;  // Skip other reads
             }
 
-            // Full feedback read when torque is enabled
+            // FeedBack() reads all registers (pos, speed, load, voltage, temp, current)
+            // in one serial transaction. Use -1 for subsequent reads to use cached data.
             if (st3215_.FeedBack(servo_id) != -1) {
-                int raw_pos = st3215_.ReadPos(servo_id);
+                int raw_pos = st3215_.ReadPos(-1);
                 position_states_[i] = ticks_to_radians(raw_pos, i);
 
-                // Velocity in rad/s
-                velocity_states_[i] = st3215_.ReadSpeed(servo_id) * 2.0 * M_PI / 4096.0;
-                // Effort as normalized load (-100% to 100%)
-                effort_states_[i] = st3215_.ReadLoad(servo_id) / 10.0;
+                velocity_states_[i] = st3215_.ReadSpeed(-1) * 2.0 * M_PI / 4096.0;
+                effort_states_[i] = st3215_.ReadLoad(-1) / 10.0;
 
-                double temperature = st3215_.ReadTemper(servo_id);
-                double voltage = st3215_.ReadVoltage(servo_id) / 10;
-                double current = st3215_.ReadCurrent(servo_id) * 6.5 / 1000;
+                double temperature = st3215_.ReadTemper(-1);
+                double voltage = st3215_.ReadVoltage(-1) / 10.0;
+                double current = st3215_.ReadCurrent(-1) * 6.5 / 1000.0;
 
                 RCLCPP_DEBUG(rclcpp::get_logger("SOARM100Interface"),
                             "Servo %d: raw_pos=%d (%.2f rad) vel=%.2f effort=%.2f temp=%.1f V=%.1f I=%.3f",
