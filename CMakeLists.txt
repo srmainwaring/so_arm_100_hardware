@@ -73,6 +73,19 @@ target_link_libraries(test_servo
   SCServo  # Link directly to SCServo library
 )
 
+add_executable(test_pwm
+  test/test_pwm.cpp
+)
+
+target_include_directories(test_pwm 
+  PRIVATE
+  include/SCServo_Linux  # Direct path to SCServo headers
+)
+
+target_link_libraries(test_pwm
+  PRIVATE
+  SCServo  # Link directly to SCServo library
+)
 
 add_executable(ping_test
   test/ping_test.cpp
@@ -99,6 +112,7 @@ install(
   TARGETS 
     ${PROJECT_NAME}
     test_servo
+    test_pwm
     ping_test
   DESTINATION lib/${PROJECT_NAME}
 )
