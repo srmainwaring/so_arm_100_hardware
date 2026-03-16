@@ -263,7 +263,7 @@ hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & /*
             } else if (active_control_mode_[i] == 1) {
                 // Velocity mode: convert rad/s to servo speed ticks
                 s16 speed_ticks = static_cast<s16>(velocity_commands_[i] * 4096.0 / (2.0 * M_PI));
-                if (!st3215_.RegWriteSpe(servo_id, speed_ticks, 50)) {
+                if (!st3215_.RegWriteSpe(servo_id, speed_ticks, servo_acceleration_)) {
                     RCLCPP_WARN(rclcpp::get_logger("SOARM100Interface"),
                                "Failed to write velocity to servo %d", servo_id);
                 }
