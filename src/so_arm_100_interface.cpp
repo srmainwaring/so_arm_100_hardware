@@ -284,11 +284,13 @@ hardware_interface::return_type SOARM100Interface::write(const rclcpp::Time & /*
             // Mode is set by perform_command_mode_switch when controllers are switched
             if (active_control_mode_[i] == 2) {
                 // Effort/PWM mode: command is percentage (-100 to 100), PWM range is -1000 to 1000
-                s16 pwm = static_cast<s16>(std::clamp(-effort_commands_[i], -100.0, 100.0) * 10.0);
+                s16 pwm = static_cast<s16>(std::clamp(effort_commands_[i], -100.0, 100.0) * 10.0);
                 if (!st3215_.RegWritePwm(servo_id, pwm)) {
                     RCLCPP_WARN(rclcpp::get_logger("SOARM100Interface"),
                                "Failed to write PWM to servo %d", servo_id);
                 }
+                RCLCPP_INFO(rclcpp::get_logger("SOARM100Interface"),
+                            "Write PWM %d to servo %d", pwm, servo_id);
             } else if (active_control_mode_[i] == 1) {
                 // Velocity mode: convert rad/s to servo speed ticks
                 s16 speed_ticks = static_cast<s16>(velocity_commands_[i] * 4096.0 / (2.0 * M_PI));
