@@ -8,27 +8,47 @@ SMS_STS sm_st;
 int main(int argc, char ** argv)
 {
     const char* port = "/dev/ttyUSB0";
+    uint8_t mode = 0;
 
-    // First optional positional argument is the serial port
     if (argc > 1) {
+        // 1st optional argument is the serial port
         port = argv[1];
     }
     if (argc > 2) {
+        // 2nd optional argument is the
+        // control mode: (0=position, 1=velocity, 2=effort/PWM)
+        mode = std::atoi(argv[2]);
+        mode = std::min<uint8_t>(mode, 2);
+        mode = std::max<uint8_t>(mode, 0);
+    }
+    if (argc > 3) {
         std::cout << "Invalid argument [" << argv[2] << "]. "
-                  << "Expect one optional argument [serial_port]"
+                  << "Expect at most two arguments [[serial_port] [mode]]"
                   << std::endl;
         return -1;
     }
     std::cout << "serial:" << port << std::endl;
-    
+
     if(!sm_st.begin(1000000, port)){
         std::cout << "Failed to init sms/sts motor!" << std::endl;
         return 0;
     }
 
+    // Set Mode
+    std::cout << "Mode: " << static_cast<int>(mode) << std::endl;
+    for(uint8_t id = 1; id <= 6; id++) {
+        if (!sm_st.Mode(id, mode)) {
+            std::cout << "Failed to set Mode on servo "
+            << static_cast<int>(id) << std::endl;
+            return -1;
+        }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
     // Read data from all servos
-    for(int id = 1; id <= 6; id++) {
-        std::cout << "\nReading servo " << id << "..." << std::endl;
+    for(uint8_t id = 1; id <= 6; id++) {
+        std::cout << "\nReading servo "
+                  << static_cast<int>(id) << "..." << std::endl;
         
         if (sm_st.FeedBack(id) != -1) {
             // Position (0-4095)
@@ -56,7 +76,8 @@ int main(int argc, char ** argv)
             std::cout << "  Temperature: " << temp << "°C" << std::endl;
             std::cout << "  Moving: " << (move ? "yes" : "no") << std::endl;
         } else {
-            std::cout << "  Failed to read feedback from servo " << id << std::endl;
+            std::cout << "  Failed to read feedback from servo "
+                      << static_cast<int>(id) << std::endl;
         }
     }
 
